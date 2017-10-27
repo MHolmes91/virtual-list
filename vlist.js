@@ -96,6 +96,7 @@ VirtualList.prototype.createRow = function(i) {
   }
 
   item.classList.add('vrow');
+  item.setAttribute('data-vi', i);
   item.style.position = 'absolute';
   item.style.top = (i * this.itemHeight) + 'px';
   return item;
@@ -138,7 +139,7 @@ VirtualList.createContainer = function(w, h) {
   c.style.overflow = 'auto';
   c.style.position = 'relative';
   c.style.padding = 0;
-  c.style.border = '1px solid black';
+  c.classList.add('vContainer');
   return c;
 };
 
@@ -150,5 +151,6 @@ VirtualList.createScroller = function(h) {
   scroller.style.left = 0;
   scroller.style.width = '1px';
   scroller.style.height = h + 'px';
+  scroller.classList.add('vScroller');
   return scroller;
 };
