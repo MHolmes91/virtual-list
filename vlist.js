@@ -58,7 +58,9 @@ function VirtualList(config) {
     if (Date.now() - lastScrolled > 100) {
       var badNodes = document.querySelectorAll('[data-rm="1"]');
       for (var i = 0, l = badNodes.length; i < l; i++) {
-        self.container.removeChild(badNodes[i]);
+        var removedNode = self.container.removeChild(badNodes[i]);
+        removedNode.removeAttribute('data-rm');
+        removedNode.style.display = null;
       }
     }
   }, 300);
