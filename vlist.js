@@ -43,8 +43,8 @@ function VirtualList(config) {
   this.container.appendChild(scroller);
 
   var screenItemsLen = Math.ceil(config.h / itemHeight);
-  // Cache 4 times the number of items that fit in the container viewport
-  this.cachedItemsLen = screenItemsLen * 3;
+  // Cache 4 times the number of items that fit in the container viewport or a custom number
+  this.cachedItemsLen = config.itemBuffer ? config.itemBuffer : screenItemsLen * 3;
   this._renderChunk(this.container, 0);
 
   var self = this;
@@ -52,11 +52,11 @@ function VirtualList(config) {
   var maxBuffer = screenItemsLen * itemHeight;
   var lastScrolled = 0;
 
-  // As soon as scrolling has stopped, this interval asynchronouslyremoves all
+  // As soon as scrolling has stopped, this interval asynchronously removes all
   // the nodes that are not used anymore
   this.rmNodeInterval = setInterval(function() {
     if (Date.now() - lastScrolled > 100) {
-      var badNodes = document.querySelectorAll('[data-rm="1"]');
+      var badNodes = self.container.querySelectorAll('[data-rm="1"]');
       for (var i = 0, l = badNodes.length; i < l; i++) {
         var removedNode = self.container.removeChild(badNodes[i]);
         removedNode.removeAttribute('data-rm');
