@@ -97,8 +97,12 @@ VirtualList.prototype.createRow = function(i) {
 
   item.classList.add('vrow');
   item.setAttribute('data-vi', i);
+  item.removeAttribute('data-rm');
+
+  item.style.display = null;
   item.style.position = 'absolute';
   item.style.top = (i * this.itemHeight) + 'px';
+
   return item;
 };
 
