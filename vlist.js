@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-'use strict';
+var throttle =  require('./node_modules/lodash.throttle');
 
 /**
  * Creates a virtually-rendered scrollable list.
@@ -50,7 +50,7 @@ function VirtualList(config) {
   */
   this.itemsInContainer = {};
 
-  if(config.generatorFn){
+  if (config.generatorFn) {
     this.generatorFn = config.generatorFn;
   }
   this.totalRows = config.totalRows || this.items.length;
@@ -69,28 +69,39 @@ function VirtualList(config) {
   var maxBuffer = screenItemsLen * itemHeight;
   var lastScrolled = 0;
 
-  // As soon as scrolling has stopped, this interval asynchronously removes all
+  // As soon as scrolling has stopped, this function will asynchronously remove all
   // the nodes that are not used anymore
-  this.rmNodeInterval = setInterval(function() {
+  this.throttledRmNode = throttle(function() {
     if (Date.now() - lastScrolled > 100) {
-      var badItemIndicies = Object.keys(_this.itemsInContainer).filter(function(index){
-        return _this.itemsInContainer[index].status === 0;
-      });
+      //Only items that are visible (status = 1) should be in the container
+      _this.itemsInContainer = Object.keys(_this.itemsInContainer).reduce(function(items, index) {
+        var item = _this.itemsInContainer[index];
+        if (item.status === 1) {
+          items[index] = item;
+        }
 
-      badItemIndicies.forEach(function(index){
-        var badItem = _this.itemsInContainer[index];
-        var removedNode = _this.container.removeChild(badItem.node);
-        removedNode.style.display = "";
-        delete _this.itemsInContainer[index];
+        return items;
+      }, {});
+
+      //Scroller is the first item and shouldn't be removed, remove all other children
+      while (_this.container.children.length > 1) {
+        _this.container.removeChild(_this.container.lastChild);
+      }
+
+      //Re-add the items that should be in the container
+      Object.keys(_this.itemsInContainer).forEach(function(index) {
+        var item = _this.itemsInContainer[index];
+        _this.container.appendChild(item.node);
       });
     }
-  }, 300);
+  }, 300, { leading: false, trailing: true });
 
   function onScroll(e) {
     var scrollTop = e.target.scrollTop; // Triggers reflow
     if (!lastRepaintY || Math.abs(scrollTop - lastRepaintY) > maxBuffer) {
       var first = parseInt(scrollTop / itemHeight) - screenItemsLen;
       _this._renderChunk(_this.container, first < 0 ? 0 : first);
+      _this.throttledRmNode();
       lastRepaintY = scrollTop;
     }
 
@@ -101,41 +112,39 @@ function VirtualList(config) {
   this.container.addEventListener('scroll', onScroll);
 }
 
-VirtualList.prototype.generatorFn = function(i){
+VirtualList.prototype.generatorFn = function(items, i, itemHeight) {
   var item;
   //If we have an array of items and if we have an item at the current index
-  if(this.items && this.items[i]){
+  if (items && typeof items[i] !== "undefined") {
     //Create the item as a text node if it is a string
-    if(typeof this.items[i] === 'string'){
+    if (typeof items[i] === 'string') {
       item = document.createElement('div');
-      item.style.height = this.itemHeight + 'px';
 
-      var itemText = document.createTextNode(this.items[i]);
+      var itemText = document.createTextNode(items[i]);
       item.appendChild(itemText);
     }
     //Otherwise, assume the item is a DOM element and use it directly
-    else{
-      item = this.items[i];
+    else {
+      return items[i];
     }
   }
   //If blank, create a blank div
-  else{
+  else {
     item = document.createElement('div');
-    item.style.height = this.itemHeight + 'px';
   }
+
+  item.style.height = itemHeight + 'px';
 
   return item;
 };
 
 VirtualList.prototype.createRow = function(i) {
-  var item = this.generatorFn(i);
+  var item = this.generatorFn(this.items, i, this.itemHeight);
 
   item.classList.add('vrow');
   item.style.display = '';
   item.style.position = 'absolute';
   item.style.top = (i * this.itemHeight) + 'px';
-
-  this.itemsInContainer[i] = {status: 1, node: item};
 
   return item;
 };
@@ -153,12 +162,12 @@ VirtualList.prototype.createRow = function(i) {
 VirtualList.prototype._renderChunk = function(node, from) {
   var _this = this;
   var finalItem = from + this.cachedItemsLen;
-  if (finalItem > this.totalRows){
+  if (finalItem > this.totalRows) {
     finalItem = this.totalRows;
   }
 
   // Hide and mark obsolete nodes for deletion.
-  Object.keys(this.itemsInContainer).forEach(function(key){
+  Object.keys(this.itemsInContainer).forEach(function(key) {
     var itemInContainer = _this.itemsInContainer[key];
     itemInContainer.status = 0;
     itemInContainer.node.style.display = 'none';
@@ -168,7 +177,9 @@ VirtualList.prototype._renderChunk = function(node, from) {
   // the parent node
   var fragment = document.createDocumentFragment();
   for (var i = from; i < finalItem; i++) {
-    fragment.appendChild(this.createRow(i));
+    var row = this.createRow(i);
+    this.itemsInContainer[i] = { status: 1, node: row };
+    fragment.appendChild(row);
   }
 
   node.appendChild(fragment);
@@ -196,3 +207,5 @@ VirtualList.createScroller = function(h) {
   scroller.classList.add('vScroller');
   return scroller;
 };
+
+module.exports = VirtualList;

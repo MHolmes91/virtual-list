@@ -10,33 +10,16 @@
   <link rel="stylesheet" type="text/css" media="screen,print" href="style.css"/>
 </head>
 <body>
-<script type="text/javascript" src="../vlist.js"></script>
+<script type="text/javascript" src="../dist/vlist.min.js"></script>
 <script>
-  /*
-  var bigAssList = [];
-  for (var i = 0; i < 10000; i++) {
-    var el = document.createElement("div");
-    el.classList.add("item");
-    el.innerHTML = "ITEM " + i;
-    el.style.borderBottom = "1px solid red";
-    bigAssList.push(el);
-  }
-
-  var list = new ScrollableList({
-    w: 300,
-    h: 300,
-    items: bigAssList,
-    itemHeight: 31
-  });
-  */
-
   var list = new VirtualList({
     h: window.innerHeight,
     itemHeight: 30,
     totalRows: 100000,
-    generatorFn: function(row) {
+    generatorFn: function(items, row, itemHeight) {
       var el = document.createElement("div");
       el.innerHTML = "<p>ITEM " + row + "</p>";
+      el.style.height = itemHeight + 'px';
       return el;
     }
   });
